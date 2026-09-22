@@ -28,3 +28,24 @@
 
 ## 环境依赖
 Python >=3.13.15
+
+## 运行方式
+### 1. 获取项目源码
+方式一：Git克隆
+```bash
+git clone https://github.com/luohuacishu/azurelane_search_agent.git
+cd azurelane_search_agent
+
+# 创建虚拟环境
+python -m venv .venv
+# 激活虚拟环境
+.venv\Scripts\activate
+# 安装全部依赖包
+pip install -r requirements.txt
+
+MODEL_NAME=你的模型名称
+LLM_BASE_URL=https://xxx/v1
+LLM_API_KEY=sk-xxxxxx
+
+cd src
+python azurelane_search_agent.py
