@@ -1,0 +1,59 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 虚拟环境（重点！你的 .venv 就在这里）
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# 打包 / 分发
+build/
+dist/
+*.egg-info/
+*.egg
+
+# 测试 / 覆盖率
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ===== 环境变量 / 密钥（务必忽略）=====
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ===== VSCode =====
+.vscode/
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+
+# ===== 日志 / 临时文件 =====
+*.log
+*.tmp
+.cache/
+
+# ===== 操作系统 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+#  ===== 其他 =====
+notebooks/chapter1
+notebooks/hello.ipynb
+data
+.gitkeep
