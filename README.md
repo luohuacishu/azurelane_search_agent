@@ -28,24 +28,73 @@
 
 ## 环境依赖
 Python >=3.13.15
-
 ## 运行方式
+
 ### 1. 获取项目源码
-方式一：Git克隆
+
 ```bash
 git clone https://github.com/luohuacishu/azurelane_search_agent.git
 cd azurelane_search_agent
+```
 
-# 创建虚拟环境
+### 2. 创建并激活虚拟环境
+
+**Windows (PowerShell/CMD):**
+```bash
 python -m venv .venv
-# 激活虚拟环境
 .venv\Scripts\activate
-# 安装全部依赖包
-pip install -r requirements.txt
+```
 
+**macOS / Linux:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. 安装依赖包
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. 配置环境变量
+
+在项目根目录下创建一个名为 `.env` 的文件，并填入你的大模型配置信息：
+
+```env
+# 替换为你实际的模型配置
 MODEL_NAME=你的模型名称
 LLM_BASE_URL=https://xxx/v1
 LLM_API_KEY=sk-xxxxxx
+```
+*(注：如果是临时在终端测试，也可以在运行前手动 export，但强烈建议使用 `.env` 文件管理)*
 
+### 5. 启动程序
+
+```bash
 cd src
 python azurelane_search_agent.py
+```
+
+### 🚀 运行示例
+
+**用户提问：** `信浓的保底次数是多少？`
+
+**终端输出：**
+```text
+开始运行搜索智能体团队
+创建模型客户端完成
+
+---------- extract_agent 输出 ----------
+信浓保底次数：[蝶海梦花活动池累计建造200次后可兑换获取；复刻蝶海梦花累计建造200次后可兑换获取；共可累计4次；也可通过常驻UR兑换获取]
+
+请用户代理开始执行测试
+----------------------------------------
+```
+
+**最终协作开发结果：**
+> 信浓保底次数：
+> 蝶海梦花活动池累计建造 **200次** 后可兑换获取；
+> 复刻蝶海梦花累计建造 **200次** 后可兑换获取；
+> 共可累计 **4次**；
+> 也可通过常驻 UR 兑换获取。
