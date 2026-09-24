@@ -35,14 +35,23 @@
 
 ## 目录结构
 -pro3/
+
 -├── src/
+
 -│ ├── azurelane_search_agent.py # 多智能体核心逻辑 + run_agent_for_qq 包装函数
--│ ├── demo_reply.py # QQ 机器人入口（botpy）
+
+-│ ├── reply.py # QQ 机器人入口（botpy）
+
 -│ ├── executor.py # 工具执行器
+
 -│ ├── search.py # Wiki 搜索工具
+
 -│ ├── config.yaml # QQ 机器人 AppID / Secret
--│ └── .env # 大模型配置
+
+-├── .env # 大模型配置
+
 -├── requirements.txt
+
 -└── README.md
 
 
