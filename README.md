@@ -1,33 +1,58 @@
-# 碧蓝航线Wiki多智能体查询系统
-基于 AutoGen AgentChat 构建的全自动多智能体信息检索流水线。
-输入自然语言查询，智能体团队自动完成需求解析、Wiki数据拉取、信息提炼、结果校验迭代，最终返回结构化的碧蓝航线图鉴信息。
+# 碧蓝航线 Wiki 多智能体查询系统
+
+基于 AutoGen AgentChat 构建的轻量级多智能体信息检索流水线。  
+输入自然语言查询，智能体团队自动完成意图解析、Wiki 数据拉取、信息提炼，返回结构化的碧蓝航线图鉴信息。  
+同时提供 QQ 群机器人接入能力，支持在 QQ 群内 @ 机器人直接查询。
 
 ## 系统架构
-本项目采用 `SelectorGroupChat` 动态选择器多智能体架构，支持条件分支与多轮迭代重提炼。
-> 流程：用户提问 → summarize_agent（需求解析） → search_agent（调用Wiki工具） → extract_agent（信息提炼） → user_proxy（结果审核）
-> 分支逻辑：审核不通过，自动跳转回 extract_agent 重新提炼；审核通过输出 Terminated，任务结束。
 
-### 智能体角色分工
-1. **summarize_agent 需求总结智能体**
-    接收用户自然语言问题，解析查询意图，生成Wiki工具调用参数。
-2. **search_agent 搜索工具智能体**
-    接收查询参数，调用外部工具 `get_blhx_wiki_data` 请求碧蓝海事局Wiki，获取原始结构化字典数据。
-3. **extract_agent 信息提炼智能体**
-    基于Wiki原始数据，提取用户关心字段，整理成简洁可读结果；审核不通过时可多次重新提炼。
-4. **user_proxy 自动审核智能体**
-    校验提炼结果是否满足用户需求。合格输出 `Terminated` 终止任务；不合格指令提炼智能体重新整理信息。
+本项目采用 `SelectorGroupChat` 动态选择器多智能体架构，经过优化后简化为两个智能体：
+
+> 流程：用户提问 → query_agent（意图解析 + 调用工具） → format_agent（信息提炼 + 输出终止）
+
+- **query_agent**：分析用户想查什么，调用 `get_blhx_wiki_data` 工具获取原始数据。
+- **format_agent**：把原始数据整理成用户可读的简洁格式，输出 `Terminated` 结束任务。
+
+### 优化亮点
+
+相比早期 4 智能体版本（summarize / search / extract / user_proxy），当前版本做了以下优化：
+
+1. **合并智能体**：summarize + search 合并为 `query_agent`，extract + user_proxy 合并为 `format_agent`，LLM 调用次数从 4 次降到 2 次。
+2. **复用模型客户端**：`model_client` 单例模式，避免每次请求重复创建。
+3. **规则校验代替 LLM 审核**：`is_answer_valid()` 函数替代 user_proxy 的 LLM 判断，省一次调用。
+4. **并发限流**：使用 `asyncio.Semaphore(3)` 限制同时处理的请求数，避免打爆 API。
+5. **修复 selector 跳转 bug**：原 `"ent"` 跳转目标修正为 `"format_agent"`。
 
 ## 核心技术特性
-1. 协作模式：SelectorGroupChat，自定义selector函数，支持动态跳转Agent，适配迭代重提炼场景。
-2. 双层终止保护：
-   - 语义终止条件：TextMentionTermination，检测`Terminated`正常结束；
-   - 硬轮次上限：max_turns=3，防止智能体死循环，限制最大对话轮次。
-3. Function Calling 外部工具集成：search_agent绑定Wiki爬虫工具，抓取并清洗Wiki页面标记文本。
-4. 全自动流水线，无需人工介入（无Human-in-the-Loop）。
-5. 事件流采集对话消息，自动提取最后一轮提炼结果作为输出。
+
+1. **协作模式**：`SelectorGroupChat` + 自定义 selector 函数，支持动态跳转 Agent。
+2. **双层终止保护**：
+   - 语义终止：`TextMentionTermination` 检测 `Terminated` 正常结束；
+   - 硬轮次上限：`max_turns=2` 防止死循环。
+3. **Function Calling 外部工具集成**：`query_agent` 绑定 Wiki 爬虫工具，抓取并清洗 Wiki 页面标记文本。
+4. **全自动流水线**：无需人工介入（无 Human-in-the-Loop）。
+5. **事件流采集**：自动提取最后一轮 `format_agent` 输出作为最终结果。
+
+## 目录结构
+-pro3/
+-├── src/
+-│ ├── azurelane_search_agent.py # 多智能体核心逻辑 + run_agent_for_qq 包装函数
+-│ ├── demo_reply.py # QQ 机器人入口（botpy）
+-│ ├── executor.py # 工具执行器
+-│ ├── search.py # Wiki 搜索工具
+-│ ├── config.yaml # QQ 机器人 AppID / Secret
+-│ └── .env # 大模型配置
+-├── requirements.txt
+-└── README.md
+
 
 ## 环境依赖
-Python >=3.13.15
+
+- Python >= 3.11（推荐 3.13）
+- AutoGen AgentChat
+- botpy（用于 QQ 机器人接入）
+- 依赖清单见 `requirements.txt`
+
 ## 运行方式
 
 ### 1. 获取项目源码
@@ -35,66 +60,50 @@ Python >=3.13.15
 ```bash
 git clone https://github.com/luohuacishu/azurelane_search_agent.git
 cd azurelane_search_agent
-```
 
-### 2. 创建并激活虚拟环境
-
-**Windows (PowerShell/CMD):**
-```bash
+## 2. 创建并激活虚拟环境
+Windows (PowerShell/CMD):
 python -m venv .venv
 .venv\Scripts\activate
-```
 
-**macOS / Linux:**
-```bash
+macOS / Linux:
 python3 -m venv .venv
 source .venv/bin/activate
-```
 
-### 3. 安装依赖包
-
-```bash
+## 3. 安装依赖包
 pip install -r requirements.txt
-```
 
-### 4. 配置环境变量
-
-在项目根目录下创建一个名为 `.env` 的文件，并填入你的大模型配置信息：
-
-```env
-# 替换为你实际的模型配置
+## 4. 配置环境变量
+在项目根目录下创建一个名为 .env 的文件，填入大模型配置：
 MODEL_NAME=你的模型名称
 LLM_BASE_URL=https://xxx/v1
 LLM_API_KEY=sk-xxxxxx
-```
-*(注：如果是临时在终端测试，也可以在运行前手动 export，但强烈建议使用 `.env` 文件管理)*
 
-### 5. 启动程序
-
-```bash
+## 5. 运行方式
+### 方式一：直接运行多智能体查询（命令行测试）
 cd src
 python azurelane_search_agent.py
-```
 
-### 🚀 运行示例
+### 方式二：启动 QQ 群机器人
+cd src
+python demo_reply.py
 
-**用户提问：** `信浓的保底次数是多少？`
 
-**终端输出：**
-```text
+
+运行示例
+用户提问： 信浓的保底次数是多少？
+
+终端输出：
+
 开始运行搜索智能体团队
-创建模型客户端完成
+模型客户端就绪
 
----------- extract_agent 输出 ----------
+---------- format_agent 输出 ----------
 信浓保底次数：[蝶海梦花活动池累计建造200次后可兑换获取；复刻蝶海梦花累计建造200次后可兑换获取；共可累计4次；也可通过常驻UR兑换获取]
+--------------------------------------
 
-请用户代理开始执行测试
-----------------------------------------
-```
-
-**最终协作开发结果：**
-> 信浓保底次数：
-> 蝶海梦花活动池累计建造 **200次** 后可兑换获取；
-> 复刻蝶海梦花累计建造 **200次** 后可兑换获取；
-> 共可累计 **4次**；
-> 也可通过常驻 UR 兑换获取。
+协作开发结果: 信浓保底次数：
+蝶海梦花活动池累计建造 200次 后可兑换获取；
+复刻蝶海梦花累计建造 200次 后可兑换获取；
+共可累计 4次；
+也可通过常驻 UR 兑换获取。
